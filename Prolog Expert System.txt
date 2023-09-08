@@ -1,0 +1,183 @@
+% BAZA DE DATE RUTE
+
+% statii
+
+% bazat pe ruta 12
+stop(stop1, 'str. Prof. Ion Dumeniuc').
+stop(stop2, 'str. Igor Vieru').
+stop(stop3, 'Judecătoria Sectorului Ciocana').
+stop(stop4, 'str. Petru Zadnipru').
+stop(stop5, 'Pretura Sectorului Ciocana').
+stop(stop6, 'Bd. Mircea Cel Bătrân').
+stop(stop7, 'str. Meșterul Manole').
+stop(stop8, 'str. Mihail Sadoveanu').
+stop(stop9, 'str. Nicolae Dimo').
+stop(stop10, 'str. Alecu Russo').
+stop(stop11, 'str. Kiev').
+stop(stop12, 'Circul').
+stop(stop13, 'Str. Romană').
+stop(stop14, 'str. Eugen Doga').
+stop(stop15, 'str. Columna').
+stop(stop16, 'str. Bucureşti').
+stop(stop17, 'Universitatea De Stat').
+
+% bazat pe ruta 22
+stop(stop18, 'Universitatea De Medicină').
+stop(stop19, 'Str. Toma Ciorbă').
+stop(stop20, 'Str. Serghei Lazo').
+stop(stop21, 'Piața Marii Adunări Naționale').
+stop(stop22, 'Teatrul Mihai Eminescu').
+stop(stop23, 'Str. Armenească').
+stop(stop24, 'Str. Ismail').
+stop(stop25, 'Str. Ciuflea').
+stop(stop26, 'Piața Ovidiu').
+stop(stop27, 'Spitalul Municipal Nr. 1').
+stop(stop28, 'Str. Hristo Botev').
+stop(stop29, 'Str. Teilor').
+stop(stop30, 'Bd. Traian').
+stop(stop31, 'Str. Cuza Vodă').
+stop(stop32, 'Str. Burebista').
+stop(stop33, 'Str. Valea Crucii').
+stop(stop34, 'Grădina Botanică').
+
+% bazat pe ruta 13
+
+stop(stop35, 'Str. Vadul Lui Vodă').
+stop(stop36, 'Parcul De Troleibuze Nr. 3').
+stop(stop37, 'Asociația Moldovahidromaș').
+stop(stop38, 'Str. Meșterul Manole').
+stop(stop39, 'Str. Otovasca').
+stop(stop40, 'Str. Uzinelor').
+stop(stop41, 'Asociația Agromașina').
+stop(stop42, 'str. Negreșteni').
+stop(stop43, 'Asociaţia Tutun-CTC').
+stop(stop44, 'str. Calea Basarabiei').
+stop(stop45, 'Bul. Dimitrie Cantemir').
+stop(stop46, 'Bd. Ștefan Cel Mare Și Sfânt').
+stop(stop47, 'str. București').
+stop(stop48, 'Complexul Memorial Eternitate').
+
+% bazat pe ruta 10
+
+stop(stop49, 'str. Studenților').
+stop(stop50, 'str. Matei Basarab').
+stop(stop51, 'str. Miron Costin').
+stop(stop52, 'Bul. Moscova').
+stop(stop53, 'str. Kiev').
+
+
+% rutele de troleibuz
+ruta(ruta12, [stop1, stop2, stop3, stop4, stop5, stop6, stop7, stop8, stop9, stop10, stop11, stop12, stop13, stop14, stop15, stop16, stop17]).
+ruta(ruta22, [stop18, stop19, stop20, stop21, stop22, stop23, stop24, stop25, stop26, stop27, stop28, stop29, stop30, stop31, stop32, stop33, stop34]).
+ruta(ruta13, [stop1, stop2, stop3, stop4, stop5, stop6, stop35, stop36, stop37, stop38, stop39, stop40, stop41, stop42, stop43, stop44, stop45, stop46, stop47, stop48]).
+ruta(ruta10, [stop49, stop50, stop51, stop52, stop53, stop12, stop13, stop14, stop15, stop16, stop17]).
+
+%reguli de conectare directe
+
+connected(X, Y) :-
+    ruta(_, Stops),
+    append(_, [X, Y|_], Stops).
+
+% reguli de conectare indirecte
+
+connected(stop21, stop15).
+connected(stop15, stop21).
+
+connected(stop24, stop46).
+connected(stop46, stop24).
+
+connected(stop10, stop52).
+connected(stop52, stop10).
+
+% calc timp
+
+time_between_stops(Stop1, Stop2, Time) :-
+    stop(Stop1, _),
+    stop(Stop2, _),
+    (
+        connected(Stop1, Stop2), % direct connection
+        Time is 3,
+    	!
+    ;
+        connected(Stop1, Stop), % indirect connection
+        time_between_stops(Stop, Stop2, Time1),
+        Time is Time1 + 3,
+    	!
+    ;
+        connected(Stop2, Stop), % indirect connection
+        time_between_stops(Stop1, Stop, Time1),
+        Time is Time1 + 3,
+    	!
+    ).
+
+
+% gasirea rutelor fara indirect
+
+find_routes(Start, End, Routes, Stops) :-
+    setof(Route, Stops^(ruta(Route, Stops), member(Start, Stops), member(End, Stops)), Routes),
+    Routes \= [],
+    !
+    .
+
+
+% gasirea rutelor cu indirect
+find_routes(Start, End, Routes, Stops) :-
+    setof(Route1-Route2-StopName,
+        Stops1^Stops2^Stop^(
+            stop(Stop, StopName),
+            ruta(Route1, Stops1),
+            member(Start, Stops1),
+            connected(Stop, _),
+            member(Stop, Stops1),
+            ruta(Route2, Stops2),
+            member(End, Stops2),
+            connected(Stop, _),
+            Route1 \= Route2
+        ), Routes),
+    Routes \= [],
+    setof(StopName,
+        (   Stops1^Stops2^Route1^Route2^(
+                stop(Stop, StopName),
+                ruta(Route1, Stops1),
+                member(Start, Stops1),
+                connected(Stop, _),
+                member(Stop, Stops1),
+                setof(IntermediaryStop-IntermediaryStopName,
+                    (   stop(IntermediaryStop, IntermediaryStopName),
+                        ruta(Route2, Stops2),
+                        member(End, Stops2),
+                        connected(IntermediaryStop, _),
+                        member(IntermediaryStop, Stops2),
+                        connected(IntermediaryStop, Stop),
+                        IntermediaryStop \= Start,
+                        IntermediaryStop \= End
+                    ), _IntermediaryStops),
+                member(Route1-Route2-StopName, Routes)
+            )
+        ),
+        Stops
+    ),
+    Stops \= [],
+    !.
+
+recommend_route :-
+    write('Care este punctul de plecare?'),
+    read(Stop1),
+    write('Care este destinatia?'),
+    read(Stop2),
+    stop(StopNr1, Stop1),
+    stop(StopNr2, Stop2),
+    find_routes(StopNr1, StopNr2, Routes, Stops),
+    format('Rutele disponibile intre ~w si ~w: ~w.~n', [Stop1, Stop2, Routes]),
+    ( Stops = []
+    -> format('Nu sunt necesare schimbari de rute.~n')
+    ; format('Rutele trebuie schimbate la statia ~w.~n', [Stops])
+    ),
+    time_between_stops(StopNr1, StopNr2, Time),
+    format('Timpul estimat intre ~w si ~w: ~w minute.~n', [Stop1, Stop2, Time]).
+
+
+
+
+
+
